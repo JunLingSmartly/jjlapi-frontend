@@ -1,89 +1,24 @@
-import { addRule, removeRule, updateRule } from '@/services/ant-design-pro/api';
-import { listInterfaceInfoByPageUsingGet } from '@/services/jjlapi-backend/interfaceInfoController';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
-  ModalForm,
   PageContainer,
   ProDescriptions,
-  ProFormText,
-  ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import '@umijs/max';
 import { Button, Drawer, message } from 'antd';
-import type { SortOrder } from 'antd/lib/table/interface';
 import React, { useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
 
-/**
- * @en-US Add node
- * @zh-CN 添加节点
- * @param fields
- */
-const handleAdd = async (fields: API.RuleListItem) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addRule({ ...fields });
-    hide();
-    message.success('Added successfully');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Adding failed, please try again!');
-    return false;
-  }
-};
-
-/**
- * @en-US Update node
- * @zh-CN 更新节点
- *
- * @param fields
- */
-const handleUpdate = async (fields: FormValueType) => {
-  const hide = message.loading('Configuring');
-  try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
-    hide();
-
-    message.success('Configuration is successful');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Configuration failed, please try again!');
-    return false;
-  }
-};
-
-/**
- *  Delete node
- * @zh-CN 删除节点
- *
- * @param selectedRows
- */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
-  const hide = message.loading('正在删除');
-  if (!selectedRows) return true;
-  try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
-    hide();
-    message.success('Deleted successfully and will refresh soon');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('Delete failed, please try again');
-    return false;
-  }
-};
+import UpdateModal from '@/pages/InterfaceInfo/components/UpdateModal';
+import {
+  addInterfaceInfoUsingPost,
+  deleteInterfaceInfoUsingPost,
+  listInterfaceInfoByPageUsingGet,
+  updateInterfaceInfoUsingPost,
+} from '@/services/jjlapi-backend/interfaceInfoController';
+import { SortOrder } from 'antd/es/table/interface';
+import CreateModal from './components/CreateModal';
 
 const TableList: React.FC = () => {
   /**
@@ -96,19 +31,94 @@ const TableList: React.FC = () => {
    * @zh-CN 分布更新窗口的弹窗
    * */
   const [updateModalOpen, handleUpdateModalOpen] = useState<boolean>(false);
-
   const [showDetail, setShowDetail] = useState<boolean>(false);
-
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
-  const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
+  const [currentRow, setCurrentRow] = useState<API.InterfaceInfo>();
+  const [selectedRowsState, setSelectedRows] = useState<API.InterfaceInfo[]>([]);
+
+  // 模态框的变量在TableList组件里，所以把增删改节点都放进来
+  /**
+   * @en-US Add node
+   * @zh-CN 添加节点
+   * @param fields
+   */
+  // 把参数的类型改成InterfaceInfo
+  const handleAdd = async (fields: API.InterfaceInfo) => {
+    const hide = message.loading('正在添加');
+    try {
+      // 把addRule改成addInterfaceInfoUsingPOST
+      await addInterfaceInfoUsingPost({
+        ...fields,
+      });
+      hide();
+      // 如果调用成功会提示'创建成功'
+      message.success('创建成功');
+      // 创建成功就关闭这个模态框
+      handleModalOpen(false);
+      return true;
+    } catch (error: any) {
+      hide();
+      // 否则提示'创建失败' + 报错信息
+      message.error('创建失败，' + error.message);
+      return false;
+    }
+  };
+
+  /**
+   * @en-US Update node
+   * @zh-CN 更新节点
+   *
+   * @param fields
+   */
+  const handleUpdate = async (fields: API.InterfaceInfo) => {
+    if (!currentRow) {
+      return;
+    }
+    const hide = message.loading('修改中');
+    try {
+      await updateInterfaceInfoUsingPost({
+        id: currentRow.id,
+        ...fields,
+      });
+      hide();
+      message.success('操作成功');
+      return true;
+    } catch (error: any) {
+      hide();
+      message.error('操作失败！' + error.message);
+      return false;
+    }
+  };
+
+  /**
+   *  Delete node
+   * @zh-CN 删除节点
+   *
+   * @param selectedRows
+   */
+  const handleRemove = async (record: API.InterfaceInfo) => {
+    const hide = message.loading('正在删除');
+    if (!record) return true;
+    try {
+      await deleteInterfaceInfoUsingPost({
+        id: record.id,
+      });
+      hide();
+      message.success('删除成功');
+      //删除成功自动刷新表单
+      actionRef.current?.reload();
+      return true;
+    } catch (error: any) {
+      hide();
+      message.error('删除失败，' + error.message);
+      return false;
+    }
+  };
 
   /**
    * @en-US International configuration
    * @zh-CN 国际化配置
    * */
-  const intl = useIntl();
-
   const columns: ProColumns<API.InterfaceInfo>[] = [
     {
       title: 'id',
@@ -117,39 +127,26 @@ const TableList: React.FC = () => {
     },
     {
       title: '接口名称',
-      //name对应后端的字段名
       dataIndex: 'name',
-      // tip不用管，一个规则
-      // tip: 'The rule name is the unique key',
 
-      // render不用管，它是说渲染类型，默认我们渲染类型就是text
-      // render: (dom, entity) => {
-      //   return (
-      //     <a
-      //       onClick={() => {
-      //         setCurrentRow(entity);
-      //         setShowDetail(true);
-      //       }}
-      //     >
-      //       {dom}
-      //     </a>
-      //   );
-      // },
-
-      // 展示文本
       valueType: 'text',
+      formItemProps: {
+        rules: [
+          {
+            //必填项
+            required: true,
+          },
+        ],
+      },
     },
     {
       title: '描述',
-      //description对应后端的字段名
       dataIndex: 'description',
-      // 展示的文本为富文本编辑器
       valueType: 'textarea',
     },
     {
       title: '请求方法',
       dataIndex: 'method',
-      // 展示的文本为富文本编辑器
       valueType: 'text',
     },
     {
@@ -186,11 +183,13 @@ const TableList: React.FC = () => {
       title: '创建时间',
       dataIndex: 'createTime',
       valueType: 'dateTime',
+      hideInForm: true,
     },
     {
       title: '更新时间',
       dataIndex: 'updateTime',
       valueType: 'dateTime',
+      hideInForm: true,
     },
     {
       title: '操作',
@@ -204,10 +203,15 @@ const TableList: React.FC = () => {
             setCurrentRow(record);
           }}
         >
-          配置
+          修改
         </a>,
-        <a key="subscribeAlert" href="https://procomponents.ant.design/">
-          订阅警报
+        <a
+          key="config"
+          onClick={() => {
+            handleRemove(record);
+          }}
+        >
+          删除
         </a>,
       ],
     },
@@ -238,14 +242,23 @@ const TableList: React.FC = () => {
           sort: Record<string, SortOrder>,
           filter: Record<string, React.ReactText[] | null>,
         ) => {
-          const res = await listInterfaceInfoByPageUsingGet({
+          const res: any = await listInterfaceInfoByPageUsingGet({
             ...params,
           });
+          // 如果后端请求给你返回了接口信息
           if (res?.data) {
+            // 返回一个包含数据、成功状态和总数的对象
             return {
               data: res?.data.records || [],
               success: true,
-              total: res.total,
+              total: res?.data.total || 0,
+            };
+          } else {
+            // 如果数据不存在，返回一个空数组，失败状态和零总数
+            return {
+              data: [],
+              success: false,
+              total: 0,
             };
           }
         }}
@@ -260,7 +273,15 @@ const TableList: React.FC = () => {
         <FooterToolbar
           extra={
             <div>
-              已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a> 项 &nbsp;&nbsp;
+              已选择{' '}
+              <a
+                style={{
+                  fontWeight: 600,
+                }}
+              >
+                {selectedRowsState.length}
+              </a>{' '}
+              项 &nbsp;&nbsp;
               <span>
                 服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
               </span>
@@ -279,34 +300,9 @@ const TableList: React.FC = () => {
           <Button type="primary">批量审批</Button>
         </FooterToolbar>
       )}
-      <ModalForm
-        title={'新建规则'}
-        width="400px"
-        open={createModalOpen}
-        onOpenChange={handleModalOpen}
-        onFinish={async (value) => {
-          const success = await handleAdd(value as API.RuleListItem);
-          if (success) {
-            handleModalOpen(false);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }
-        }}
-      >
-        <ProFormText
-          rules={[
-            {
-              required: true,
-              message: '规则名称为必填项',
-            },
-          ]}
-          width="md"
-          name="name"
-        />
-        <ProFormTextArea width="md" name="desc" />
-      </ModalForm>
-      <UpdateForm
+      <UpdateModal
+        //要传递columns，不然修改模态框没有表单项
+        columns={columns}
         onSubmit={async (value) => {
           const success = await handleUpdate(value);
           if (success) {
@@ -323,7 +319,7 @@ const TableList: React.FC = () => {
             setCurrentRow(undefined);
           }
         }}
-        updateModalOpen={updateModalOpen}
+        visible={updateModalOpen}
         values={currentRow || {}}
       />
 
@@ -350,8 +346,21 @@ const TableList: React.FC = () => {
           />
         )}
       </Drawer>
+      {/* 创建一个CreateModal组件，用于在点击新增按钮时弹出 */}
+      <CreateModal
+        columns={columns}
+        // 当取消按钮被点击时,设置更新模态框为false以隐藏模态窗口
+        onCancel={() => {
+          handleModalOpen(false);
+        }}
+        // 当用户点击提交按钮之后，调用handleAdd函数处理提交的数据，去请求后端添加数据(这里的报错不用管,可能里面组件的属性和外层的不一致)
+        onSubmit={(values) => {
+          handleAdd(values);
+        }}
+        // 根据更新窗口的值决定模态窗口是否显示
+        visible={createModalOpen}
+      />
     </PageContainer>
   );
 };
-
 export default TableList;

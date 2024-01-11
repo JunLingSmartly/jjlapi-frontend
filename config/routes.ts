@@ -12,23 +12,17 @@
  */
 export default [
   {
-    name: '登录',
     path: '/user',
     layout: false,
     routes: [
       {
-        name: 'login',
+        name: '登录',
         path: '/user/login',
         component: './User/Login',
       },
     ],
   },
-  {
-    path: '/welcome',
-    name: '欢迎页面',
-    icon: 'smile',
-    component: './Welcome',
-  },
+  //{path: '/welcome',name: '欢迎页面',icon: 'smile',component: './Welcome',},
   {
     path: '/admin',
     name: '管理员页面',
@@ -50,12 +44,9 @@ export default [
     name: '表格页',
     icon: 'table',
     path: '/list',
-    component: './TableList',
+    component: './InterfaceInfo',
   },
-  {
-    path: '/',
-    redirect: '/welcome',
-  },
+  //{path: '/', redirect: '/welcome',},
   {
     path: '*',
     layout: false,
