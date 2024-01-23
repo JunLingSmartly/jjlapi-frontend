@@ -36,31 +36,28 @@ const Index: React.FC = () => {
         loading={loading}
         itemLayout="horizontal"
         dataSource={list}
-        renderItem={(item) => (
-          <List.Item actions={[<a key={'list-loadmore-edit'}>查看</a>]}>
-            <List.Item.Meta
-              // href等会要改成接口文档的链接
-              title={<a href={'https://ant.design'}>{item.name}</a>}
-              description={item.description}
-            />
-          </List.Item>
-        )}
-        // 分页配置
+        renderItem={(item) => {
+          const apiLink = `/interface_info/${item.id}`;
+          return (
+            <List.Item
+              actions={[
+                <a key={item.id} href={apiLink}>
+                  查看
+                </a>,
+              ]}
+            >
+              <List.Item.Meta
+                title={<a href="https://ant.design">{item.name}</a>} // 注意此处链接的修改
+                description={item.description}
+              />
+            </List.Item>
+          );
+        }}
         pagination={{
-          // 自定义显示总数
-          // eslint-disable-next-line @typescript-eslint/no-shadow
-          showTotal(total: number) {
-            return '总数：' + total;
-          },
-          // 每页显示条数
+          showTotal: (total) => `总数：${total}`, // 注意此处的箭头函数语法
           pageSize: 5,
-          // 总数，从状态中获取
           total,
-          // 切换页面触发的回调函数
-          onChange(page, pageSize) {
-            // 加载对应页面的数据
-            loadData(page, pageSize);
-          },
+          onChange: (page, pageSize) => loadData(page, pageSize), // 注意此处的箭头函数语法
         }}
       />
     </PageContainer>
