@@ -90,6 +90,10 @@ declare namespace API {
     id?: number;
   };
 
+  type IdRequest = {
+    id?: string;
+  };
+
   type InterfaceInfo = {
     create_time?: string;
     description?: string;

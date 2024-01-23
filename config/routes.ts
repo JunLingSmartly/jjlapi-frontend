@@ -11,6 +11,7 @@
  * @doc https://umijs.org/docs/guides/routes
  */
 export default [
+  { path: '/', name: '主页', icon: 'smile', component: './Index' },
   {
     path: '/user',
     layout: false,
@@ -22,29 +23,19 @@ export default [
       },
     ],
   },
-  //{path: '/welcome',name: '欢迎页面',icon: 'smile',component: './Welcome',},
   {
     path: '/admin',
-    name: '管理员页面',
+    name: '管理页',
     icon: 'crown',
     access: 'canAdmin',
     routes: [
       {
-        path: '/admin',
-        redirect: '/admin/sub-page',
-      },
-      {
-        path: '/admin/sub-page',
-        name: 'sub-page',
-        component: './Admin',
+        path: '/admin/interface_info',
+        name: '接口管理',
+        icon: 'table',
+        component: './Admin/InterfaceInfo',
       },
     ],
-  },
-  {
-    name: '表格页',
-    icon: 'table',
-    path: '/list',
-    component: './InterfaceInfo',
   },
   //{path: '/', redirect: '/welcome',},
   {
